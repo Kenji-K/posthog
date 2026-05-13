@@ -134,6 +134,7 @@ export const productScenes: Record<string, () => Promise<any>> = {
     Workflows: () => import('../../products/workflows/frontend/WorkflowsScene'),
     Workflow: () => import('../../products/workflows/frontend/Workflows/WorkflowScene'),
     WorkflowsLibraryTemplate: () => import('../../products/workflows/frontend/TemplateLibrary/MessageTemplate'),
+    FounderMode: () => import('../../products/founder_mode/frontend/scenes/FoundersScene'),
 }
 
 /** This const is auto-generated, as is the whole file */
@@ -142,6 +143,7 @@ export const productRoutes: Record<string, [string, string]> = {
     '/data-management/actions/new': ['NewAction', 'actionNew'],
     '/data-management/actions/:id': ['Action', 'action'],
     '/data-management/actions/new/': ['NewAction', 'actionNew'],
+    '/founder': ['FounderMode', 'founder'],
     '/transformations': ['Transformations', 'transformations'],
     '/support/tickets': ['SupportTickets', 'supportTickets'],
     '/support/tickets/:ticketId': ['SupportTicketDetail', 'supportTicketDetail'],
@@ -623,6 +625,7 @@ export const productUrls = {
     cohort: (id: string | number): string => `/cohorts/${id}`,
     cohorts: (): string => '/cohorts',
     cohortCalculationHistory: (id: string | number): string => `/cohorts/${id}/calculation-history`,
+    founder: (): string => '/founder',
     supportDashboard: (): string => '/support',
     supportTickets: (): string => '/support/tickets',
     supportTicketDetail: (ticketId: string | number): string => `/support/tickets/${ticketId}`,
