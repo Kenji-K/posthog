@@ -20,7 +20,6 @@ import {
     HogQLVariable,
     Node,
     NodeKind,
-    ProductItemCategory,
     ProductKey,
     TileFilters,
 } from '~/queries/schema/schema-general'
@@ -34,6 +33,7 @@ import type {
 import type { SourceSceneTab } from '../../products/data_warehouse/frontend/scenes/SourceScene/SourceScene'
 import { LLM_ANALYTICS_CLUSTER_URL_PATTERN } from '../../products/llm_analytics/frontend/clusters/constants'
 import type { WorkflowsSceneTab } from '../../products/workflows/frontend/WorkflowsScene'
+import { ProductItemCategory } from './queries/schema/schema-general'
 import {
     ActionType,
     DashboardType,
@@ -51,7 +51,9 @@ export const productScenes: Record<string, () => Promise<any>> = {
     Actions: () => import('../../products/actions/frontend/pages/Actions'),
     Action: () => import('../../products/actions/frontend/pages/Action'),
     NewAction: () => import('../../products/actions/frontend/pages/Action'),
-    BusinessKnowledge: () => import('../../products/business_knowledge/frontend/scenes/BusinessKnowledgeScene'),
+    AgenticTests: () => import('../../products/agentic_tests/frontend/scenes/AgenticTestsScene/AgenticTestsScene'),
+    AgenticTest: () => import('../../products/agentic_tests/frontend/scenes/AgenticTestScene/AgenticTestScene'),
+    AgenticTestNew: () => import('../../products/agentic_tests/frontend/scenes/AgenticTestScene/AgenticTestScene'),
     Transformations: () => import('../../frontend/src/scenes/data-pipelines/TransformationsScene'),
     SupportTickets: () => import('../../products/conversations/frontend/scenes/tickets/SupportTicketsScene'),
     SupportTicketDetail: () => import('../../products/conversations/frontend/scenes/ticket/SupportTicketScene'),
@@ -143,7 +145,9 @@ export const productRoutes: Record<string, [string, string]> = {
     '/data-management/actions/new': ['NewAction', 'actionNew'],
     '/data-management/actions/:id': ['Action', 'action'],
     '/data-management/actions/new/': ['NewAction', 'actionNew'],
-    '/business-knowledge': ['BusinessKnowledge', 'businessKnowledge'],
+    '/agentic_tests': ['AgenticTests', 'agenticTests'],
+    '/agentic_tests/new': ['AgenticTestNew', 'agenticTestNew'],
+    '/agentic_tests/:id': ['AgenticTest', 'agenticTest'],
     '/transformations': ['Transformations', 'transformations'],
     '/support/tickets': ['SupportTickets', 'supportTickets'],
     '/support/tickets/:ticketId': ['SupportTicketDetail', 'supportTicketDetail'],
@@ -310,13 +314,13 @@ export const productConfiguration: Record<string, any> = {
     },
     Action: { name: 'Action', projectBased: true, activityScope: 'Action', iconType: 'action' },
     NewAction: { name: 'New Action', projectBased: true, activityScope: 'Action', iconType: 'action' },
-    BusinessKnowledge: {
-        name: 'Business knowledge',
+    AgenticTests: {
         projectBased: true,
-        activityScope: 'KnowledgeSource',
-        description:
-            'Upload text, public URLs, or files your AI support agent can cite when answering customer tickets.',
+        name: 'Agentic tests',
+        description: 'Scheduled LLM-driven browser checks, seeded by your session replays.',
     },
+    AgenticTest: { projectBased: true, name: 'Agentic test' },
+    AgenticTestNew: { projectBased: true, name: 'New agentic test' },
     Transformations: {
         projectBased: true,
         name: 'Transformations',
@@ -628,7 +632,9 @@ export const productUrls = {
     },
     action: (id: string | number): string => `/data-management/actions/${id}`,
     actions: (): string => '/data-management/actions',
-    businessKnowledge: (): string => '/business-knowledge',
+    agenticTests: (params: Record<string, string> = {}): string => combineUrl('/agentic_tests', params).url,
+    agenticTestNew: (params: Record<string, string> = {}): string => combineUrl('/agentic_tests/new', params).url,
+    agenticTest: (id: string): string => `/agentic_tests/${id}`,
     transformations: (): string => '/transformations',
     cohort: (id: string | number): string => `/cohorts/${id}`,
     cohorts: (): string => '/cohorts',
@@ -1158,6 +1164,7 @@ export const getTreeItemsNew = (): FileSystemImport[] => [
         iconType: 'action' as FileSystemIconType,
         iconColor: ['var(--color-product-actions-light)'] as FileSystemIconColor,
     },
+    { path: 'Agentic test', type: 'agentic_test', href: '/agentic_tests/new' },
     {
         path: `Cohort`,
         type: 'cohort',
@@ -1309,6 +1316,14 @@ export const getTreeItemsNew = (): FileSystemImport[] => [
 
 /** This const is auto-generated, as is the whole file */
 export const getTreeItemsProducts = (): FileSystemImport[] => [
+    {
+        path: 'Agentic tests',
+        category: ProductItemCategory.BEHAVIOR,
+        type: 'agentic_tests',
+        href: '/agentic_tests',
+        sceneKey: 'AgenticTests',
+        sceneKeys: ['AgenticTests', 'AgenticTest', 'AgenticTestNew'],
+    },
     {
         path: 'Clusters',
         intents: [ProductKey.LLM_CLUSTERS],
