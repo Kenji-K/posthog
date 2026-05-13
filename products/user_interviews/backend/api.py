@@ -1,10 +1,12 @@
 import re
 import json
 from functools import cached_property
+from typing import Any
 from uuid import uuid4
 
 from django.conf import settings
 from django.core.files import File
+from django.db.models import QuerySet
 
 import posthoganalytics
 import posthoganalytics.ai.openai
@@ -323,6 +325,7 @@ class IntervieweeContextSerializer(serializers.ModelSerializer):
         help_text="Identifier for the interviewee — typically an email address or PostHog distinct ID. Must match a value in the parent topic's interviewee_emails or interviewee_distinct_ids.",
     )
     agent_context = serializers.CharField(
+        max_length=10000,
         help_text="Extra context the voice agent should know about this specific interviewee — e.g. 'uses the replay product but has never used summarization'.",
     )
 
@@ -337,7 +340,26 @@ class IntervieweeContextSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_by", "created_at")
 
-    def create(self, validated_data: dict) -> IntervieweeContext:
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        topic_id = self.context["topic_id"]
+        team = self.context["get_team"]()
+
+        if not UserInterviewTopic.objects.filter(id=topic_id, team_id=team.id).exists():
+            raise serializers.ValidationError({"topic": "Topic not found in this project."})
+
+        if self.instance is None:
+            interviewee_identifier = attrs.get("interviewee_identifier")
+            if IntervieweeContext.objects.filter(
+                topic_id=topic_id, interviewee_identifier=interviewee_identifier
+            ).exists():
+                raise serializers.ValidationError(
+                    {
+                        "interviewee_identifier": "A context row for this interviewee already exists on this topic. Update the existing row instead of creating a new one."
+                    }
+                )
+        return attrs
+
+    def create(self, validated_data: dict[str, Any]) -> IntervieweeContext:
         request = self.context["request"]
         team = self.context["get_team"]()
         topic_id = self.context["topic_id"]
@@ -357,8 +379,11 @@ class IntervieweeContextViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
     serializer_class = IntervieweeContextSerializer
     queryset = IntervieweeContext.objects.select_related("created_by").all()
 
-    def safely_get_queryset(self, queryset):
-        return queryset.filter(topic_id=self.parents_query_dict["topic_id"])
+    def safely_get_queryset(self, queryset: QuerySet) -> QuerySet:
+        return queryset.filter(
+            topic_id=self.parents_query_dict["topic_id"],
+            team_id=self.parents_query_dict["team_id"],
+        )
 
-    def get_serializer_context(self) -> dict:
+    def get_serializer_context(self) -> dict[str, Any]:
         return {**super().get_serializer_context(), "topic_id": self.parents_query_dict["topic_id"]}
