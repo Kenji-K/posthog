@@ -19,7 +19,7 @@ from posthog.schema import ProductKey
 from posthog.api.routing import TeamAndOrgViewSetMixin
 from posthog.api.shared import UserBasicSerializer
 
-from .models import EmailWithDisplayNameValidator, UserInterview, UserInterviewTopic
+from .models import EmailWithDisplayNameValidator, IntervieweeContext, UserInterview, UserInterviewTopic
 
 elevenlabs_client = ElevenLabs()
 
@@ -314,3 +314,51 @@ class UserInterviewTopicViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
     serializer_class = UserInterviewTopicSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["topic"]
+
+
+class IntervieweeContextSerializer(serializers.ModelSerializer):
+    created_by = UserBasicSerializer(read_only=True)
+    interviewee_identifier = serializers.CharField(
+        max_length=400,
+        help_text="Identifier for the interviewee — typically an email address or PostHog distinct ID. Must match a value in the parent topic's interviewee_emails or interviewee_distinct_ids.",
+    )
+    agent_context = serializers.CharField(
+        help_text="Extra context the voice agent should know about this specific interviewee — e.g. 'uses the replay product but has never used summarization'.",
+    )
+
+    class Meta:
+        model = IntervieweeContext
+        fields = (
+            "id",
+            "created_by",
+            "created_at",
+            "interviewee_identifier",
+            "agent_context",
+        )
+        read_only_fields = ("id", "created_by", "created_at")
+
+    def create(self, validated_data: dict) -> IntervieweeContext:
+        request = self.context["request"]
+        team = self.context["get_team"]()
+        topic_id = self.context["topic_id"]
+        return IntervieweeContext.objects.create(
+            team=team,
+            topic_id=topic_id,
+            created_by=request.user,
+            **validated_data,
+        )
+
+
+@extend_schema(tags=[ProductKey.USER_INTERVIEWS])
+class IntervieweeContextViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
+    """Per-interviewee extra context for a user interview topic. At most one row per (topic, interviewee_identifier)."""
+
+    scope_object = "user_interview_DO_NOT_USE"
+    serializer_class = IntervieweeContextSerializer
+    queryset = IntervieweeContext.objects.select_related("created_by").all()
+
+    def safely_get_queryset(self, queryset):
+        return queryset.filter(topic_id=self.parents_query_dict["topic_id"])
+
+    def get_serializer_context(self) -> dict:
+        return {**super().get_serializer_context(), "topic_id": self.parents_query_dict["topic_id"]}

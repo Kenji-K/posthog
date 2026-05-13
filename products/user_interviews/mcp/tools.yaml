@@ -49,3 +49,36 @@ tools:
             targeting (interviewee_cohort, interviewee_emails, interviewee_distinct_ids), and the voice agent setup
             (agent_context, questions). Supports `search` for substring match against the topic, and `limit`/`offset`
             for pagination.
+    user-interview-topic-interviewees-create:
+        operation: user_interview_topic_interviewees_create
+        enabled: true
+        scopes:
+            - user_interview_DO_NOT_USE:write
+        annotations:
+            readOnly: false
+            destructive: false
+            idempotent: false
+        title: Add per-interviewee context to a topic
+        description: >
+            Attach extra context for a single interviewee on a user interview topic. Use this to give the voice agent
+            background it should know about this specific person — e.g. "uses the replay product but has never used
+            summarization". `interviewee_identifier` is the email or PostHog distinct ID matching one of the entries
+            in the parent topic's targeting fields. `agent_context` is free text. At most one row per
+            (topic, interviewee_identifier) — calling create twice for the same pair will conflict.
+        include_params:
+            - interviewee_identifier
+            - agent_context
+    user-interview-topic-interviewees-list:
+        operation: user_interview_topic_interviewees_list
+        enabled: true
+        scopes:
+            - user_interview_DO_NOT_USE:read
+        annotations:
+            readOnly: true
+            destructive: false
+            idempotent: true
+        list: true
+        title: List per-interviewee contexts for a topic
+        description: >
+            List the per-interviewee context rows attached to a single user interview topic. Each row is
+            (interviewee_identifier, agent_context). Use this to see who has extra context attached before adding more.
